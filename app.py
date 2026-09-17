@@ -80,7 +80,7 @@ db.init_app(app)
 # ──────────────────────────────────────────────
 with app.app_context():
     import models  # noqa: F401  テーブル定義を読み込む
-    from models import Location, User
+    from models import InfoPost, Location, User
 
     from routes.main  import main_bp
     from routes.posts import posts_bp
@@ -145,23 +145,35 @@ with app.app_context():
         else:
             admin_user.is_admin = True
 
+    # 旧版で自動登録していた2地点だけを取り除く。利用者が作成した同名の場所は残す。
+    legacy_locations = Location.query.filter(
+        Location.name.in_(('赤居文庫', 'バイロカフェ')),
+        Location.author_id.is_(None),
+    ).all()
+    for location in legacy_locations:
+        # 削除した場所に紐付く投稿は残し、場所との関連だけを解除する。
+        InfoPost.query.filter_by(location_id=location.id).update(
+            {'location_id': None}, synchronize_session=False
+        )
+        db.session.delete(location)
+
     # 初期表示用の代表的な場所。名前で確認して重複登録を防ぐ。
     initial_locations = (
         {
-            'name': '赤居文庫',
-            'type': '飲食店',
-            'lat': 39.7184,
-            'lng': 140.1241,
+            'name': '秋田高専',
+            'type': '学校',
+            'lat': 39.770972,
+            'lng': 140.080139,
             'city': '秋田市',
-            'description': 'Cafe 赤居文庫（秋田市中通4-6-16）',
+            'description': '秋田工業高等専門学校（秋田市飯島文京町1-1）',
         },
         {
-            'name': 'バイロカフェ',
-            'type': '飲食店',
-            'lat': 39.7161,
-            'lng': 140.1117,
+            'name': '秋田駅',
+            'type': '駅',
+            'lat': 39.7169,
+            'lng': 140.1292,
             'city': '秋田市',
-            'description': 'BAIRO CAFE（秋田市大町5-2-33）',
+            'description': 'JR秋田駅（秋田市中通7丁目）',
         },
         {
             'name': 'セリオン',
