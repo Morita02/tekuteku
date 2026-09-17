@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}投稿する - てくてく秋田犬{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;margin:0 auto;">
+<div class="card-neuro" style="cursor:default;">
+    <p class="section-title">✍️ 新しく情報を投稿する</p>
+    <form action="/add" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="posting_source" value="post_page">
+
+        <!-- 投稿タブ -->
+        <div style="margin-bottom:16px;">
+            <label class="form-lbl">投稿の種類</label>
+            <div class="radio-group">
+                <input type="radio" id="tab_evt" name="tab" value="event" {% if selected_tab == 'event' %}checked{% endif %}>
+                <label for="tab_evt">🎈 イベント情報</label>
+                <input type="radio" id="tab_rd"  name="tab" value="road" {% if selected_tab == 'road' %}checked{% endif %}>
+                <input type="radio" id="tab_loc" name="tab" value="location" {% if selected_tab == 'location' %}checked{% endif %}>
+                <label for="tab_loc">📍 場所への投稿</label>
+                <label for="tab_rd">🚧 道路情報</label>
+            </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">カテゴリー</label>
+            <select id="post_category" name="category"></select>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">タイトル <span class="required-badge">必須</span></label>
+            <input type="text" name="title" required>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">内容 <span class="required-badge">必須</span></label>
+            <textarea name="content" rows="3" placeholder="詳しい内容を入力してください" required
+                      style="resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">補足説明</label>
+            <textarea name="description" rows="2" placeholder="補足・詳細（任意）"
+                      style="resize:vertical;"></textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">場所</label>
+            <input type="text" name="place" placeholder="例：秋田駅前、国道7号" id="post_place">
+        </div>
+
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">登録済みの場所に紐付ける</label>
+            <select name="location_id" id="post_location">
+                <option value="">場所を選択しない</option>
+                {% for location in locations %}
+                <option value="{{ location.id }}" {% if selected_location and location.id == selected_location.id %}selected{% endif %}>{{ location.name }}{% if location.city %}（{{ location.city }}）{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- GPS -->
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">📍 現在地を添付する</label>
+            <button type="button" class="btn-outline-theme"
+                    style="padding:7px 20px;font-size:0.9rem;width:100%;"
+                    onclick="getGPSLocation('gps-status','latitude','longitude','post_place')">
+                📍 GPS位置情報を取得する
+            </button>
+            <span id="gps-status"
+                  style="display:block;margin-top:6px;font-size:0.82rem;color:#888;">
+                未取得（ボタンを押すと許可確認が出ます）
+            </span>
+            <input type="hidden" id="latitude"  name="latitude">
+            <input type="hidden" id="longitude" name="longitude">
+        </div>
+
+        <!-- 画像 -->
+        <div style="margin-bottom:20px;">
+            <label class="form-lbl">写真（最大5枚）</label>
+            <label class="cute-upload-button">
+                🌸 写真を選ぶ
+                <input type="file" name="images" accept=".png,.jpg,.jpeg,.gif" multiple
+                       id="post_image_input" onchange="previewImage(this,'post_preview')">
+            </label>
+            <div id="post_preview" style="display:none;margin-top:10px;">
+                <div id="post_preview_list" class="post-image-preview-list"></div>
+                <button type="button" onclick="clearPreview('post_image_input','post_preview')"
+                        style="margin-top:6px;background:none;border:none;
+                               color:#e63946;font-size:0.85rem;cursor:pointer;padding:0;">
+                    ✕ 画像を取り消す
+                </button>
+            </div>
+        </div>
+
+        <div id="imagePreviewModal" class="image-preview-modal" hidden
+             onclick="if (event.target === this) closeImagePreview()">
+            <button type="button" class="image-preview-modal-close" aria-label="拡大表示を閉じる"
+                    onclick="closeImagePreview()">×</button>
+            <img id="imagePreviewModalImg" alt="選択した写真の拡大プレビュー">
+        </div>
+
+        <div style="margin:12px 0;">
+            <label class="form-lbl">イベント期限</label>
+            <input class="deadline-picker" type="text" name="deadline" placeholder="カレンダーから日時を選択" autocomplete="off">
+        </div>
+        <button type="submit" class="btn-theme" style="width:100%;font-size:1.05rem;padding:12px;">
+            投稿する 🚀
+        </button>
+        <div hidden>
+            <label class="form-lbl">イベント期限</label>
+            <input type="hidden" name="deadline_unused">
+        </div>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/location.js') }}"></script>
+<script>
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    const list = document.getElementById('post_preview_list');
+    if (input.files && input.files[0]) {
+        list.replaceChildren();
+        Array.from(input.files).slice(0, 5).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'post-image-preview-button';
+                button.title = 'タップして全体を表示';
+                button.onclick = () => openImagePreview(e.target.result);
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.alt = '選択した写真のプレビュー';
+                button.appendChild(img);
+                list.appendChild(button);
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+}
+function openImagePreview(src) {
+    document.getElementById('imagePreviewModalImg').src = src;
+    document.getElementById('imagePreviewModal').hidden = false;
+}
+function closeImagePreview() {
+    const modal = document.getElementById('imagePreviewModal');
+    modal.hidden = true;
+    document.getElementById('imagePreviewModalImg').src = '';
+}
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeImagePreview();
+});
+function clearPreview(inputId, previewId) {
+    document.getElementById(inputId).value = '';
+    const p = document.getElementById(previewId);
+    p.querySelector('.post-image-preview-list').replaceChildren();
+    p.style.display = 'none';
+}
+
+const categoryChoices = {{ {'event': event_categories, 'road': road_categories, 'location': location_categories}|tojson }};
+const categorySelect = document.getElementById('post_category');
+function updateCategoryChoices() {
+    const tab = document.querySelector('input[name="tab"]:checked').value;
+    categorySelect.replaceChildren(...categoryChoices[tab].map(category => new Option(category, category)));
+}
+document.querySelectorAll('input[name="tab"]').forEach(input => input.addEventListener('change', updateCategoryChoices));
+updateCategoryChoices();
+</script>
+{% endblock %}

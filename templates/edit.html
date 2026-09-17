@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}編集 - {{ post.title }}{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;margin:0 auto;">
+<div class="card-neuro" style="cursor:default;">
+    <p class="section-title">✏️ 投稿を編集する</p>
+    <form action="/edit/{{ post.id }}" method="POST" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">カテゴリー</label>
+            <select name="category">
+                {% for category in (road_categories if post.tab == 'road' else (location_categories if post.tab == 'location' else event_categories)) %}
+                <option value="{{ category }}" {% if category == post.category %}selected{% endif %}>{{ category }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">タイトル <span class="required-badge">必須</span></label>
+            <input type="text" name="title" value="{{ post.title }}" required>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">内容 <span class="required-badge">必須</span></label>
+            <textarea name="content" rows="4" required style="resize:vertical;">{{ post.content }}</textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">補足説明</label>
+            <textarea name="description" rows="3" style="resize:vertical;">{{ post.description or '' }}</textarea>
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">場所</label>
+            <input type="text" name="place" value="{{ post.place or '' }}">
+        </div>
+        <div style="margin-bottom:12px;">
+            <label class="form-lbl">登録済みの場所に紐付ける</label>
+            <select name="location_id">
+                <option value="">場所を選択しない</option>
+                {% for location in locations %}
+                <option value="{{ location.id }}" {% if location.id == post.location_id %}selected{% endif %}>{{ location.name }}{% if location.city %}（{{ location.city }}）{% endif %}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="margin-bottom:20px;">
+            <label class="form-lbl">画像を追加する（最大5枚）</label>
+            {% if post.image_file %}
+            <div style="margin-bottom:8px;">
+                <img src="/static/uploads/{{ post.image_file }}"
+                     style="max-height:120px;border-radius:10px;" id="edit_current_img">
+            </div>
+            {% endif %}
+            <input type="file" name="images" accept=".png,.jpg,.jpeg,.gif" multiple
+                   id="edit_image_input" onchange="previewImage(this,'edit_preview')">
+            <div id="edit_preview" style="display:none;margin-top:10px;">
+                <img style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;">
+                <button type="button" onclick="clearPreview('edit_image_input','edit_preview')"
+                        style="margin-top:6px;background:none;border:none;
+                               color:#e63946;font-size:0.85rem;cursor:pointer;padding:0;">
+                    ✕ 差し替えをやめる
+                </button>
+            </div>
+        </div>
+        <div style="margin:12px 0;">
+            <label class="form-lbl">イベント期限</label>
+            <input class="deadline-picker" type="text" name="deadline" value="{{ post.deadline.strftime('%Y-%m-%dT%H:%M') if post.deadline else '' }}" placeholder="カレンダーから日時を選択" autocomplete="off">
+        </div>
+        <div style="display:flex;gap:10px;">
+            <button type="submit" class="btn-theme" style="flex:2;padding:11px;">変更を保存</button>
+            <a href="/post/{{ post.id }}" class="btn-outline-theme"
+               style="flex:1;text-align:center;padding:10px 0;">キャンセル</a>
+        </div>
+        <div hidden>
+            <label class="form-lbl">イベント期限</label>
+            <input type="hidden" name="deadline_unused">
+        </div>
+    </form>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function previewImage(input, previewId) {
+    const preview = document.getElementById(previewId);
+    const img     = preview.querySelector('img');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { img.src = e.target.result; preview.style.display = 'block'; };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+function clearPreview(inputId, previewId) {
+    document.getElementById(inputId).value = '';
+    const p = document.getElementById(previewId);
+    p.querySelector('img').src = '';
+    p.style.display = 'none';
+}
+</script>
+{% endblock %}

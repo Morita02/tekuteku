@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}ログイン{% endblock %}
+{% block content %}
+<div style="max-width:440px;margin:0 auto;">
+  <div class="card-neuro" style="cursor:default;">
+    <p class="section-title">ログイン</p>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-lbl">メールアドレス</label><input type="email" name="email" required autocomplete="email">
+      <label class="form-lbl" style="margin-top:12px;">パスワード</label><input type="password" name="password" required autocomplete="current-password">
+      <button class="btn-theme" style="width:100%;margin-top:20px;">ログイン</button>
+    </form>
+    <p style="text-align:center;margin:16px 0 0;">初めての方は <a href="{{ url_for('auth.register') }}">アカウントを作成</a></p>
+  </div>
+</div>
+{% endblock %}

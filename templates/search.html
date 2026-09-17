@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}検索 - てくてく秋田犬{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;margin:0 auto;">
+<div class="card-neuro" style="cursor:default;">
+    <p class="section-title">🔍 キーワード検索</p>
+    <form action="/" method="GET" style="display:flex;gap:10px;flex-wrap:wrap;">
+        <input type="text" name="q" placeholder="タイトル・内容・場所名で検索..."
+               value="{{ search_query }}" style="flex:2;min-width:200px;">
+        <select name="category" style="flex:1;min-width:140px;">
+            <option value="">すべてのカテゴリー</option>
+            {% for c in categories %}
+            <option value="{{ c }}">{{ c }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn-theme">検索</button>
+    </form>
+    <p style="font-size:0.82rem;color:#888;margin-top:8px;">
+        タイトル・内容・場所名・カテゴリーで検索できます
+    </p>
+</div>
+</div>
+{% endblock %}

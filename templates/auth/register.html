@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}アカウント作成{% endblock %}
+{% block content %}
+<div style="max-width:440px;margin:0 auto;">
+  <div class="card-neuro" style="cursor:default;">
+    <p class="section-title">アカウント作成</p>
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-lbl">メールアドレス</label><input type="email" name="email" required autocomplete="email">
+      <label class="form-lbl" style="margin-top:12px;">パスワード（8文字以上）</label><input type="password" name="password" minlength="8" required autocomplete="new-password">
+      <button class="btn-theme" style="width:100%;margin-top:20px;">作成する</button>
+    </form>
+    <p style="text-align:center;margin:16px 0 0;">登録済みの方は <a href="{{ url_for('auth.login') }}">ログイン</a></p>
+  </div>
+</div>
+{% endblock %}

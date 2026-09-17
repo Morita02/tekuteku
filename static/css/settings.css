@@ -1,0 +1,231 @@
+/* =============================================
+   もっとかわいくする設定ページ 専用スタイル
+   （共通パーツは css/style.css）
+   ============================================= */
+
+.settings-page { padding-bottom: 40px; }
+
+.settings-lead {
+    text-align: center;
+    color: var(--text-color);
+    opacity: 0.7;
+    font-size: 0.95rem;
+    margin: 0 0 26px;
+}
+
+.settings-section {
+    cursor: default;
+    padding: 22px 24px 26px;
+}
+
+.settings-hint {
+    font-size: 0.82rem;
+    color: var(--text-color);
+    opacity: 0.55;
+    margin: 0 0 18px;
+}
+
+.account-parameters {
+    margin: 0 0 12px;
+    padding: 16px 20px;
+    border-radius: 16px;
+    background: var(--bg-app);
+    color: var(--text-color);
+    box-shadow: inset 3px 3px 7px var(--shadow-1), inset -3px -3px 7px var(--shadow-2);
+}
+
+.account-parameter {
+    margin: 0 0 12px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 20px;
+}
+
+.account-parameter dt {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.account-parameter dd {
+    margin: 0;
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1.3;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+.account-level-prefix {
+    margin-right: 4px;
+    font-size: 1rem;
+}
+
+.account-level-indicator {
+    display: block;
+    width: 100%;
+    height: 18px;
+    overflow: hidden;
+    border: none;
+    border-radius: 999px;
+    appearance: none;
+    background: var(--shadow-1);
+    accent-color: var(--main-c);
+}
+
+.account-level-indicator::-webkit-progress-bar {
+    background: var(--shadow-1);
+    border-radius: 999px;
+}
+
+.account-level-indicator::-webkit-progress-value {
+    background: var(--main-c);
+    border-radius: 999px;
+}
+
+.account-level-indicator::-moz-progress-bar {
+    background: var(--main-c);
+    border-radius: 999px;
+}
+
+.account-level-scale {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 6px;
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.account-level-progress-hint {
+    margin: 10px 0 0;
+    font-size: 0.82rem;
+}
+
+.sound-volume-control {
+    display: grid;
+    grid-template-columns: auto minmax(160px, 1fr) auto 4ch;
+    align-items: center;
+    gap: 12px;
+}
+
+.sound-volume-control input[type="range"] {
+    width: 100%;
+    accent-color: var(--main-c);
+    cursor: pointer;
+}
+
+.sound-volume-control output {
+    color: var(--main-c);
+    font-weight: 800;
+    text-align: right;
+}
+
+/* ──────────────────────────────────────────────
+   カラー選択ボタン（縦書き・押すと浮き上がる）
+   ────────────────────────────────────────────── */
+.color-palette {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+    /* 浮き上がった分がはみ出しても切れないように余白を確保 */
+    padding: 18px 0 24px;
+}
+
+.color-btn {
+    /* --btn-c（色）と --btn-fg（文字色）は HTML 側で 1 つずつ指定 */
+    position: relative;
+    background-color: var(--bg-app);
+    color: var(--muted-c);
+    border: none;
+    border-radius: 25px;
+    width: 80px;
+    min-height: 220px;
+    padding: 10px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 6px;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 4px 4px 8px var(--shadow-1), -4px -4px 8px var(--shadow-2);
+    transition: transform 0.28s cubic-bezier(0.34, 1.4, 0.64, 1),
+                box-shadow 0.28s ease,
+                background-color 0.28s ease,
+                color 0.28s ease;
+    cursor: pointer;
+}
+
+/* ホバー：どの色かちょっとだけ覗かせる */
+.color-btn:hover {
+    transform: translateY(-4px);
+    background-color: color-mix(in srgb, var(--btn-c) 22%, var(--bg-app));
+    color: var(--text-color);
+}
+
+/* 押している最中は沈む */
+.color-btn:active {
+    transform: translateY(2px);
+    box-shadow: inset 3px 3px 8px rgba(0,0,0,0.18);
+}
+
+/* 選択中：色がついたまま、ふわっと浮き上がる */
+.color-btn.selected,
+.color-btn.selected:hover {
+    background-color: var(--btn-c);
+    color: var(--btn-fg);
+    transform: translateY(-14px);
+    box-shadow:
+        0 18px 28px color-mix(in srgb, var(--btn-c) 45%, transparent),
+        0 8px 12px rgba(0, 0, 0, 0.12);
+}
+
+/* 選択中は押し込んでも浮いたまま */
+.color-btn.selected:active { transform: translateY(-10px); }
+
+/* 浮き上がった下に落ちる、色の影 */
+.color-btn::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -14px;
+    width: 46px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--btn-c);
+    transform: translateX(-50%) scaleX(0.4);
+    opacity: 0;
+    filter: blur(5px);
+    transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.color-btn.selected::after {
+    opacity: 0.55;
+    transform: translateX(-50%) scaleX(1);
+}
+
+/* 押した瞬間の、ぽんっと弾む動き */
+@keyframes colorPop {
+    0%   { transform: translateY(2px)   scale(0.97); }
+    55%  { transform: translateY(-20px) scale(1.05); }
+    100% { transform: translateY(-14px) scale(1); }
+}
+.color-btn.popping { animation: colorPop 0.42s cubic-bezier(0.34, 1.4, 0.64, 1); }
+
+/* 動きが苦手な人向け */
+@media (prefers-reduced-motion: reduce) {
+    .color-btn, .color-btn::after { transition: none; }
+    .color-btn.popping { animation: none; }
+}
+
+/* ──────────────────────────────────────────────
+   スマホ
+   ────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .color-btn { width: 62px; min-height: 170px; letter-spacing: 4px; font-size: 0.9rem; }
+    .color-palette { gap: 8px; }
+}

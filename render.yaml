@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: tekuteku-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --workers 1 --threads 2 --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.7
+      - key: SECRET_KEY
+        generateValue: true
+      - key: TEKUTEKU_DATA_DIR
+        value: /tmp/tekuteku-data
+      - key: DEMO_MODE
+        value: "1"
+      - key: TZ
+        value: Asia/Tokyo

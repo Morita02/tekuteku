@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}履歴 - てくてく秋田犬{% endblock %}
+
+{% block content %}
+<div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:18px;">
+
+    <!-- 自分の投稿 -->
+    <div class="card-neuro" style="cursor:default;">
+        <p class="section-title">📝 自分の投稿</p>
+        {% for p in my_posts %}
+        <a href="/post/{{ p.id }}"
+           style="display:flex;justify-content:space-between;align-items:center;
+                  padding:10px 14px;background:var(--bg-app);border-radius:12px;
+                  text-decoration:none;color:var(--text-color);margin-bottom:8px;
+                  box-shadow:2px 2px 6px var(--shadow-1),-1px -1px 4px var(--shadow-2);
+                  transition:transform 0.15s;">
+            <span style="font-weight:bold;">{{ p.title }}</span>
+            <span style="color:var(--main-c);font-size:0.85rem;">❤️ {{ p.likes }}</span>
+        </a>
+        {% else %}
+        <p style="color:#888;margin:0;">まだ投稿していません。</p>
+        {% endfor %}
+    </div>
+
+    <!-- 閲覧履歴 -->
+    <div class="card-neuro" style="cursor:default;">
+        <p class="section-title">🕐 最近チェックした記事</p>
+        {% for h in history_posts %}
+        <a href="/post/{{ h.id }}"
+           style="display:block;padding:10px 14px;background:var(--bg-app);border-radius:12px;
+                  text-decoration:none;color:var(--main-c);font-weight:bold;
+                  margin-bottom:8px;box-shadow:2px 2px 6px var(--shadow-1),-1px -1px 4px var(--shadow-2);
+                  transition:transform 0.15s;">
+            {{ h.title }}
+        </a>
+        {% else %}
+        <p style="color:#888;margin:0;">閲覧履歴はありません。</p>
+        {% endfor %}
+    </div>
+
+</div>
+{% endblock %}

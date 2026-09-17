@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja"
+      data-mode="{{ theme_mode }}"
+      style="--main-c: {{ theme_color }}; --on-main: {{ theme_on_main }};">
+<head>
+    <meta charset="UTF-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}てくてく秋田犬{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+{% if config.DEMO_MODE %}
+<div role="note" style="padding:10px 16px;background:var(--bg-app);color:var(--text-color);border-bottom:2px solid var(--main-c);text-align:center;">
+    無料お試し版：休止・再起動でアカウント、投稿、画像が消えます。個人情報は入力しないでください。
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════
+     背景アニメーション（桜 / 星が斜めに降る）
+     ════════════════════════════════════════════ -->
+<div class="background-container">
+    <div class="falling-item" style="top:5%;right:5%;animation-duration:10s;animation-delay:0s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:15%;right:25%;animation-duration:14s;animation-delay:2s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:25%;right:-5%;animation-duration:11s;animation-delay:5s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:35%;right:15%;animation-duration:16s;animation-delay:1s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:45%;right:40%;animation-duration:13s;animation-delay:7s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:55%;right:10%;animation-duration:9s;animation-delay:3s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:65%;right:30%;animation-duration:15s;animation-delay:6s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:75%;right:-10%;animation-duration:12s;animation-delay:4s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:85%;right:20%;animation-duration:18s;animation-delay:8s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:95%;right:50%;animation-duration:14s;animation-delay:2s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:2%;right:70%;animation-duration:12s;animation-delay:9s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:20%;right:85%;animation-duration:15s;animation-delay:1s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:50%;right:75%;animation-duration:11s;animation-delay:4s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:70%;right:90%;animation-duration:17s;animation-delay:6s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+    <div class="falling-item" style="top:80%;right:65%;animation-duration:13s;animation-delay:3s">{{ "✨" if theme_mode == "dark" else "🌸" }}</div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     ナビゲーションバー（タイトル）
+     ════════════════════════════════════════════ -->
+<nav class="navbar-custom" style="text-align:center; padding:14px 0;">
+    <a class="navbar-brand" href="/" style="text-decoration:none;">🌸 てくてく秋田犬 🐾</a>
+    <div class="account-actions">
+    {% if current_user %}
+    <span class="account-name">{{ current_user.display_name or current_user.email }} <strong>Lv.{{ current_user.level }}</strong></span>
+    <form action="{{ url_for('auth.logout') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button type="submit" class="account-link">ログアウト</button></form>
+    {% else %}
+    <a href="{{ url_for('auth.login') }}" class="account-link">ログイン</a>
+    <a href="{{ url_for('auth.register') }}" class="account-link">登録</a>
+    {% endif %}
+    </div>
+</nav>
+
+<div class="page-wrapper" style="margin-top:16px;">
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% for category, message in messages %}<div class="card-neuro" style="padding:10px 16px;border-left-color:{{ '#e63946' if category == 'error' else '#2e7d32' }};">{{ message }}</div>{% endfor %}
+{% endwith %}
+
+{% block tab_nav %}
+<!-- ════════════════════════════════════════════
+     タブナビ（場所検索 / イベント / 道路状況）
+     ════════════════════════════════════════════ -->
+    <div class="tab-nav">
+        <a href="/?tab=location" class="tab-btn {% if request.path == '/' and selected_tab == 'location' %}active{% endif %}">📍 場所への投稿</a>
+        <a href="/?tab=event" class="tab-btn {% if request.path == '/' and selected_tab|default('event') == 'event' %}active{% endif %}">🎈 イベント情報</a>
+        <a href="/?tab=road" class="tab-btn {% if request.path == '/' and selected_tab == 'road' %}active{% endif %}">🚧 道路状況</a>
+        {% if false %}
+        <a href="/map"
+           class="tab-btn {% if request.path == '/map' %}active{% endif %}"
+           data-i18n="tab_map">🔍 場所検索</a>
+        <a href="/"
+           class="tab-btn {% if request.path in ('/', '/search') %}active{% endif %}"
+           data-i18n="tab_event">🎈 イベント情報</a>
+        <a href="/road"
+           class="tab-btn {% if request.path == '/road' %}active{% endif %}"
+           data-i18n="tab_road">🚧 道路状況</a>
+        {% endif %}
+    </div>
+{% endblock %}
+
+    {% block content %}{% endblock %}
+
+</div><!-- /.page-wrapper -->
+
+<!-- ════════════════════════════════════════════
+     ボトムナビゲーション
+     ════════════════════════════════════════════ -->
+<div class="bottom-nav">
+    <div class="bottom-nav-inner">
+        <a href="/"        class="nav-item {% if request.path == '/' %}active-nav{% endif %}">
+            <i class="bi bi-house-door{% if request.path == '/' %}-fill{% endif %}"></i>ホーム
+        </a>
+        <a href="/search"  class="nav-item {% if request.path == '/search' %}active-nav{% endif %}">
+            <i class="bi bi-search"></i>検索
+        </a>
+        <a href="/map"     class="nav-item {% if request.path == '/map' %}active-nav{% endif %}">
+            <i class="bi bi-map{% if request.path == '/map' %}-fill{% endif %}"></i>地図
+        </a>
+        <a href="/post_page" class="nav-item {% if request.path == '/post_page' %}active-nav{% endif %}">
+            <i class="bi bi-plus-circle{% if request.path == '/post_page' %}-fill{% endif %}"></i>投稿
+        </a>
+        <a href="/history" class="nav-item {% if request.path == '/history' %}active-nav{% endif %}">
+            <i class="bi bi-clock-history"></i>履歴
+        </a>
+        <a href="/settings/" class="nav-item nav-item-settings {% if request.path.startswith('/settings') %}active-nav{% endif %}">
+            <i class="bi bi-gear{% if request.path.startswith('/settings') %}-fill{% endif %}"></i><span data-i18n="nav_settings">設定</span>
+        </a>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<script src="{{ url_for('static', filename='js/click-sound.js') }}"
+        data-sound-url="{{ url_for('static', filename='audio/click.mp3') }}"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ja.js"></script>
+<script src="{{ url_for('static', filename='js/deadline-picker.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

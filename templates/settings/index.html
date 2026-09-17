@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}もっとかわいくする設定 - てくてく秋田犬{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+
+{# 設定ページではタブナビ（場所検索・イベント・道路）は出さない #}
+{% block tab_nav %}{% endblock %}
+
+{% block content %}
+<div class="settings-page">
+    {% if user.is_admin %}
+    <section class="card-neuro settings-section">
+        <span class="settings-label">イベント取り込み管理</span>
+        <p class="settings-hint">外部イベント情報を確認し、承認後に公開します。</p>
+        <a href="{{ url_for('settings.imports_page') }}" class="btn-theme">承認待ちイベントを管理</a>
+    </section>
+    {% endif %}
+    <section class="card-neuro settings-section">
+        <span class="settings-label">アカウント</span>
+        <p class="settings-hint">ログイン中: {{ user.email }}</p>
+        {% set level_start = (user.level // 10) * 10 %}
+        {% set level_target = level_start + 10 %}
+        <div class="account-parameters">
+            <dl class="account-parameter">
+                <dt id="account-level-label">アカウントレベル</dt>
+                <dd id="account-level"><span class="account-level-prefix">Lv.</span>{{ user.level }}</dd>
+            </dl>
+            <progress class="account-level-indicator" max="10" value="{{ user.level - level_start }}"
+                      aria-labelledby="account-level-label"
+                      aria-describedby="account-level-progress-hint"
+                      aria-valuetext="現在レベル{{ user.level }}、次の目標はレベル{{ level_target }}">{{ user.level - level_start }} / 10</progress>
+            <div class="account-level-scale" aria-hidden="true">
+                <span>Lv.{{ level_start }}</span>
+                <span>Lv.{{ level_target }}</span>
+            </div>
+            <p class="account-level-progress-hint" id="account-level-progress-hint">次の目標 Lv.{{ level_target }} まであと{{ level_target - user.level }}投稿</p>
+        </div>
+        <p class="settings-hint" id="account-level-hint">投稿するたびにレベルが1上がります。</p>
+        <form action="{{ url_for('settings.update_account') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-lbl" for="display_name">表示名</label>
+            <input id="display_name" name="display_name" type="text" maxlength="50" value="{{ user.display_name or '' }}" placeholder="表示名を入力" required>
+            <button type="submit" class="btn-theme" style="margin-top:12px;">表示名を保存</button>
+        </form>
+    </section>
+
+    <section class="card-neuro settings-section">
+        <span class="settings-label">パスワード変更</span>
+        <form action="{{ url_for('settings.update_password') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-lbl" for="current_password">現在のパスワード</label>
+            <input id="current_password" name="current_password" type="password" autocomplete="current-password" required>
+            <label class="form-lbl" for="new_password" style="margin-top:12px;">新しいパスワード（8文字以上）</label>
+            <input id="new_password" name="new_password" type="password" minlength="8" autocomplete="new-password" required>
+            <label class="form-lbl" for="password_confirmation" style="margin-top:12px;">新しいパスワード（確認）</label>
+            <input id="password_confirmation" name="password_confirmation" type="password" minlength="8" autocomplete="new-password" required>
+            <button type="submit" class="btn-theme" style="margin-top:12px;">パスワードを変更</button>
+        </form>
+    </section>
+
+    <h1 class="app-title" data-i18n="settings_title">⚙️ もっとかわいくする設定</h1>
+    <p class="settings-lead" data-i18n="settings_lead">
+        色・明るさ・ことばづかいを、お好みに変えられます 🐾
+    </p>
+
+    <section class="card-neuro settings-section">
+        <label class="settings-label" for="click_sound_volume">🔊 ボタン効果音の音量</label>
+        <p class="settings-hint">0%にすると効果音をミュートできます。</p>
+        <div class="sound-volume-control">
+            <span aria-hidden="true">🔇</span>
+            <input id="click_sound_volume" type="range" min="0" max="100" step="5" value="100"
+                   aria-describedby="click_sound_volume_value">
+            <span aria-hidden="true">🔊</span>
+            <output id="click_sound_volume_value" for="click_sound_volume">100%</output>
+        </div>
+    </section>
+
+    <!-- ── 昼夜モード ───────────────────────────── -->
+    <section class="card-neuro settings-section">
+        <span class="settings-label" data-i18n="mode_label">👹 昼夜の切り替え</span>
+        <div class="radio-group">
+            <input type="radio" id="mode_day"   name="dark_mode" value="0" checked>
+            <label for="mode_day"   data-i18n="mode_day">☀️ 昼のおさんぽ</label>
+            <input type="radio" id="mode_night" name="dark_mode" value="1">
+            <label for="mode_night" data-i18n="mode_night">🌙 夜のおさんぽ（ダークモード）</label>
+        </div>
+    </section>
+
+    <!-- ── 言葉づかい ───────────────────────────── -->
+    <section class="card-neuro settings-section">
+        <span class="settings-label" data-i18n="lang_label">👹 言葉づかいの切り替え</span>
+        <div class="radio-group">
+            <input type="radio" id="lang_std" name="lang" value="標準語" checked>
+            <label for="lang_std">標準語</label>
+            <input type="radio" id="lang_akt" name="lang" value="秋田弁">
+            <label for="lang_akt">秋田弁</label>
+        </div>
+    </section>
+
+    <!-- ── テーマカラー ─────────────────────────── -->
+    <section class="card-neuro settings-section">
+        <span class="settings-label" data-i18n="color_label">🎨 お好みのテーマカラー</span>
+        <p class="settings-hint" data-i18n="color_hint">
+            押すと、その色がふわっと浮き上がります
+        </p>
+        <div class="color-palette">
+            <button class="color-btn" type="button"
+                    data-color="#ff8fa3" style="--btn-c:#ff8fa3; --btn-fg:#ffffff;">
+                さくらピンク
+            </button>
+            <button class="color-btn" type="button"
+                    data-color="#e63946" style="--btn-c:#e63946; --btn-fg:#ffffff;">
+                なまはげレッド
+            </button>
+            <button class="color-btn" type="button"
+                    data-color="#11caa0" style="--btn-c:#11caa0; --btn-fg:#ffffff;">
+                ふきいろグリーン
+            </button>
+            <button class="color-btn" type="button"
+                    data-color="#ffb703" style="--btn-c:#ffb703; --btn-fg:#443300;">
+                ババヘライエロー
+            </button>
+            <button class="color-btn" type="button"
+                    data-color="#219ebc" style="--btn-c:#219ebc; --btn-fg:#ffffff;">
+                日本海ブルー
+            </button>
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}イベント取り込み管理{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">{% endblock %}
+{% block tab_nav %}{% endblock %}
+{% block content %}
+<div class="settings-page" style="max-width:860px;margin:0 auto;">
+  <h1 class="app-title">イベント取り込み管理</h1>
+  <section class="card-neuro settings-section">
+    <p class="section-title">承認待ち候補を追加</p>
+    <p class="settings-hint">秋田県イベントカレンダーなどの確認済み情報を登録し、承認後にイベントとして公開します。</p>
+    <form action="{{ url_for('settings.add_import_candidate') }}" method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-lbl">出典名</label><input type="text" name="source_name" value="秋田県イベントカレンダー">
+      <label class="form-lbl" style="margin-top:10px;">出典URL</label><input type="url" name="source_url" required placeholder="https://">
+      <label class="form-lbl" style="margin-top:10px;">タイトル</label><input type="text" name="title" required>
+      <label class="form-lbl" style="margin-top:10px;">内容</label><textarea name="content" rows="4" required></textarea>
+      <label class="form-lbl" style="margin-top:10px;">場所</label><input type="text" name="place">
+      <label class="form-lbl" style="margin-top:10px;">期限・開催日時</label><input type="datetime-local" name="deadline">
+      <label class="form-lbl" style="margin-top:10px;">カテゴリー</label><input type="text" name="category" value="その他">
+      <button type="submit" class="btn-theme" style="margin-top:14px;">承認待ちに追加</button>
+    </form>
+  </section>
+  <section class="card-neuro settings-section">
+    <p class="section-title">取り込み候補</p>
+    {% for candidate in candidates %}
+    <div style="padding:14px 0;border-bottom:1px solid var(--shadow-1);">
+      <strong>{{ candidate.title }}</strong> <span style="font-size:.8rem;color:var(--main-c);">{{ candidate.status }}</span>
+      <div class="meta">{{ candidate.place or '場所未設定' }}{% if candidate.deadline %} | {{ candidate.deadline.strftime('%Y-%m-%d %H:%M') }}{% endif %}</div>
+      <p style="white-space:pre-wrap;margin:6px 0;">{{ candidate.content }}</p>
+      <a href="{{ candidate.source_url }}" target="_blank" rel="noopener">出典を開く</a>
+      {% if candidate.status == 'pending' %}
+      <form action="{{ url_for('settings.approve_import_candidate', candidate_id=candidate.id) }}" method="post" style="display:inline;margin-left:10px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-theme" style="padding:6px 14px;">承認して公開</button></form>
+      <form action="{{ url_for('settings.reject_import_candidate', candidate_id=candidate.id) }}" method="post" style="display:inline;margin-left:6px;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn-outline-theme" style="padding:6px 14px;border-color:#e63946;color:#e63946;">却下</button></form>
+      {% endif %}
+    </div>
+    {% else %}<p class="settings-hint">候補はまだありません。</p>{% endfor %}
+  </section>
+</div>
+{% endblock %}

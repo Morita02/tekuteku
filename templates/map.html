@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% block title %}地図 - てくてく秋田犬{% endblock %}
+
+{% block extra_head %}
+<style>
+.map-layout { display:flex; height:calc(100vh - 125px); min-height:620px; }
+#map { width:72%; height:100%; }
+.map-sidebar {
+    width:28%; padding:16px;
+    background:var(--bg-app);
+    overflow-y:auto;
+    box-shadow:-2px 0 10px rgba(0,0,0,0.1);
+}
+.map-view-tabs {
+    display:flex; gap:8px; margin:0 0 14px;
+}
+.map-layout[hidden], #listView[hidden] { display:none !important; }
+.map-view-tabs button { flex:1; }
+.location-list {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(240px,1fr));
+    gap:14px;
+}
+.location-list-card {
+    text-align:left; border:0; padding:16px; cursor:pointer;
+    color:var(--text-color); background:var(--bg-card);
+    border-radius:14px;
+    box-shadow:3px 3px 8px var(--shadow-1),-2px -2px 6px var(--shadow-2);
+    transition:transform .2s ease,box-shadow .2s ease;
+}
+.location-list-card:hover {
+    transform:translateY(-3px);
+    box-shadow:5px 7px 14px var(--shadow-1),-2px -2px 6px var(--shadow-2);
+}
+.location-list-card-title { display:block; font-weight:800; font-size:1.05rem; margin-bottom:6px; }
+.location-list-card-meta { display:block; color:#888; font-size:.85rem; margin-bottom:8px; }
+.location-list-card-description { display:block; line-height:1.5; }
+.location-list-card-jump { display:block; color:var(--main-c); font-size:.82rem; text-align:right; margin-top:10px; }
+.map-notice {
+    position:fixed; z-index:1200; top:90px; left:50%; transform:translateX(-50%);
+    min-width:280px; max-width:calc(100vw - 120px); padding:12px 16px;
+    background:var(--bg-card); border:3px solid #1b1b1b; border-radius:12px;
+    box-shadow:0 6px 18px var(--shadow-1); text-align:center;
+}
+.map-notice[data-tone="error"] { border-color:#e63946; color:#b4232b; }
+.map-notice[data-tone="confirm"] {
+    border:3px solid #1b1b1b; color:#1b1b1b; font-weight:900;
+    box-shadow:0 8px 22px rgba(0,0,0,.32);
+}
+.map-notice[data-tone="confirm"] .btn-outline-theme { border:2px solid #1b1b1b; color:#1b1b1b; }
+.map-notice[data-tone="confirm"] .btn-theme { font-weight:900; }
+.map-notice-actions { display:flex; justify-content:center; gap:8px; margin-top:10px; }
+.icon-file-input { position:absolute; width:1px; height:1px; opacity:0; pointer-events:none; }
+.cute-file-button {
+    display:inline-flex; align-items:center; gap:6px; padding:8px 12px; cursor:pointer;
+    color:#b4234b; background:linear-gradient(135deg,#fff7fa,#ffd9e5);
+    border:2px solid #f28aa7; border-radius:999px; font-size:.82rem; font-weight:800;
+    box-shadow:2px 3px 6px rgba(178,35,75,.16); transition:transform .18s, box-shadow .18s;
+}
+.cute-file-button:hover { transform:translateY(-1px) rotate(-1deg); box-shadow:3px 5px 9px rgba(178,35,75,.24); }
+.cute-file-button:focus-within { outline:3px solid rgba(242,138,167,.35); outline-offset:2px; }
+@media (max-width: 800px) {
+    .map-layout { display:block; height:auto; min-height:0; }
+    #map { width:100%; height:68vh; min-height:440px; }
+    .map-sidebar { width:100%; max-height:none; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="mapNotice" class="map-notice" hidden aria-live="polite"></div>
+<div class="map-view-tabs" role="tablist" aria-label="場所の表示方法">
+    <button id="mapViewButton" type="button" class="btn-theme" role="tab"
+            aria-selected="true" aria-controls="mapView">🗺️ 地図で探す</button>
+    <button id="listViewButton" type="button" class="btn-outline-theme" role="tab"
+            aria-selected="false" aria-controls="listView">📋 リストで探す</button>
+</div>
+
+<div id="mapView" class="map-layout" style="margin:0 -16px;" role="tabpanel">
+    <div id="map"></div>
+    <div class="map-sidebar">
+        <p class="section-title">🗺️ 秋田地図</p>
+
+        <div class="selected-box">
+            <h6 id="selectedName" style="margin:0 0 4px;font-weight:bold;color:var(--text-color);">
+                場所を選択してください
+            </h6>
+            <p id="selectedInfo" style="margin:0;font-size:0.85rem;color:#888;">
+                地図上のマーカーをクリックすると詳細が表示されます。
+            </p>
+        </div>
+
+        <!-- 現在地トラッキング -->
+        <div style="margin-bottom:14px;">
+            <button id="myLocationBtn" class="btn-outline-theme"
+                    style="width:100%;padding:9px;font-size:0.95rem;font-weight:bold;
+                           transition:all 0.25s;">
+                📍 現在地を表示
+            </button>
+            <div id="myLocStatus"
+                 style="margin-top:7px;font-size:0.8rem;color:#888;line-height:1.6;
+                        min-height:1.2em;">
+                未取得
+            </div>
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--shadow-1);margin:10px 0;">
+
+        <details id="locationEditor" style="margin-bottom:14px;">
+            <summary id="locationEditorTitle" style="font-weight:bold;cursor:pointer;color:var(--text-color);padding:8px 0;">
+                ＋ 新しい場所を追加
+            </summary>
+            <p id="locationEditorHint" style="font-size:0.82rem;color:#888;margin:6px 0;">地図上をクリックして位置を選択してください。</p>
+            <form id="locationForm" style="margin-top:8px;" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="text" id="locationName" placeholder="建物名" required style="margin-bottom:8px;">
+                <select id="locationType" required style="margin-bottom:8px;">
+                    <option value="">種類を選択</option>
+                    <option>駅</option><option>飲食店</option><option>雑貨</option>
+                    <option>学校</option><option>公園</option><option>病院</option>
+                    <option>行政施設</option><option>観光地</option><option>その他</option>
+                </select>
+                <textarea id="locationDescription" placeholder="説明" rows="2" required
+                          style="margin-bottom:8px;resize:vertical;"></textarea>
+
+                <!-- ── アイコン設定 ── -->
+                <div style="background:var(--bg-card);border-radius:12px;
+                            padding:12px;margin-bottom:10px;
+                            box-shadow:2px 2px 6px var(--shadow-1),-1px -1px 4px var(--shadow-2);">
+                    <p style="font-size:0.82rem;font-weight:bold;margin:0 0 10px;
+                               color:var(--text-color);">🎨 アイコン設定</p>
+
+                    <!-- モード切替ラジオ -->
+                    <div style="display:flex;gap:8px;margin-bottom:10px;">
+                        <label style="display:flex;align-items:center;gap:5px;
+                                      font-size:0.82rem;cursor:pointer;">
+                            <input type="radio" name="icon_mode" value="color" checked
+                                   onchange="switchIconMode('color')">
+                            🎨 色で設定
+                        </label>
+                        <label style="display:flex;align-items:center;gap:5px;
+                                      font-size:0.82rem;cursor:pointer;">
+                            <input type="radio" name="icon_mode" value="upload"
+                                   onchange="switchIconMode('upload')">
+                            🖼️ 画像をアップロード
+                        </label>
+                    </div>
+
+                    <!-- 色で設定パネル -->
+                    <div id="iconColorPanel">
+                        <p style="font-size:0.78rem;color:#888;margin:0 0 6px;">
+                            マーカーの色を選んでください（種類ごとのデフォルト色もあります）
+                        </p>
+                        <!-- デフォルト色スウォッチ -->
+                        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;"
+                             id="colorSwatches">
+                            <!-- JS で生成 -->
+                        </div>
+                        <!-- カスタムカラーピッカー -->
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <input type="color" id="iconColorPicker" value="#4a69bd"
+                                   oninput="selectColor(this.value)"
+                                   style="width:38px;height:38px;border:none;border-radius:8px;
+                                          padding:2px;cursor:pointer;background:none;">
+                            <span style="font-size:0.8rem;color:#888;">その他の色を選ぶ</span>
+                            <span id="iconColorPreview"
+                                  style="display:inline-block;width:22px;height:22px;
+                                         border-radius:50%;background:#4a69bd;
+                                         border:2px solid #fff;
+                                         box-shadow:0 1px 4px rgba(0,0,0,0.25);"></span>
+                        </div>
+                        <input type="hidden" id="iconColorValue" name="icon_color" value="#4a69bd">
+                    </div>
+
+                    <!-- 画像アップロードパネル -->
+                    <div id="iconUploadPanel" style="display:none;">
+                        <p style="font-size:0.78rem;color:#888;margin:0 0 6px;">
+                            PNG / JPG / SVG など（推奨サイズ: 36×36px）
+                        </p>
+                        <label for="iconImageInput" class="cute-file-button">🌸 アイコン画像を選ぶ</label>
+                        <input type="file" name="icon_image" id="iconImageInput" class="icon-file-input"
+                               accept=".png,.jpg,.jpeg,.gif,.svg,.webp"
+                               onchange="previewIconImage(this)">
+                        <div id="iconImagePreview" style="display:none;margin-top:6px;">
+                            <img id="iconImagePreviewImg"
+                                 style="width:48px;height:48px;object-fit:contain;
+                                        border-radius:8px;border:1px solid var(--shadow-1);">
+                            <button type="button"
+                                    onclick="clearIconPreview()"
+                                    style="background:none;border:none;color:#e63946;
+                                           font-size:0.8rem;cursor:pointer;margin-left:8px;">
+                                ✕ 取り消す
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex;gap:6px;">
+                    <button id="locationSubmitButton" type="submit" class="btn-theme" style="flex:1 1 0;padding:9px 6px;white-space:nowrap;font-size:.8rem;">建物を追加</button>
+                    <button id="locationCancelButton" type="button" class="btn-outline-theme" style="display:none;flex:1 1 0;padding:9px 6px;white-space:nowrap;font-size:.8rem;">編集終了</button>
+                </div>
+            </form>
+        </details>
+
+        <hr style="border:none;border-top:1px solid var(--shadow-1);margin:10px 0;">
+
+        <p style="font-weight:bold;font-size:0.9rem;color:var(--text-color);margin-bottom:8px;">
+            表示する種類
+        </p>
+        <div class="filter-buttons" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
+            <button class="btn-theme" data-type="all" style="padding:4px 10px;font-size:0.78rem;">すべて</button>
+            {% for t in ['駅','飲食店','雑貨','学校','公園','病院','行政施設','観光地','その他'] %}
+            <button class="btn-outline-theme" data-type="{{ t }}"
+                    style="padding:4px 10px;font-size:0.78rem;">{{ t }}</button>
+            {% endfor %}
+        </div>
+
+        <hr style="border:none;border-top:1px solid var(--shadow-1);margin:10px 0;">
+        <p style="font-weight:bold;font-size:0.9rem;color:var(--text-color);margin-bottom:8px;">
+            ルート案内
+        </p>
+        <button id="routeToggleButton" class="btn-outline-theme" style="width:100%;padding:8px;margin-bottom:6px;">
+            ルート表示 OFF
+        </button>
+        <button id="useMyLocAsStart" class="btn-outline-theme"
+                style="width:100%;padding:8px;font-size:0.82rem;">
+            🐾 現在地を出発点にする
+        </button>
+    </div>
+</div>
+
+<div id="listView" role="tabpanel" hidden>
+    <div class="card-neuro" style="cursor:default;">
+        <h2 class="section-title" style="margin-bottom:4px;">📋 場所リスト</h2>
+        <p id="locationListSummary" style="color:#888;font-size:.85rem;margin:0 0 16px;"></p>
+        <div id="locationList" class="location-list">
+            <p style="color:#888;">場所データを読み込み中...</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Leaflet JS は map.js より必ず先に読み込む -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+
+<script>
+window.MAP_CURRENT_USER_ID = {{ current_user.id if current_user else 'null' }};
+window.MAP_CURRENT_USER_IS_ADMIN = {{ 'true' if current_user and current_user.is_admin else 'false' }};
+// ── 種類ごとのデフォルト色 ──────────────────────
+const TYPE_COLORS = {
+    '駅':     '#1976d2',
+    '飲食店': '#e53935',
+    '雑貨':   '#8e24aa',
+    '学校':   '#f4511e',
+    '公園':   '#2e7d32',
+    '病院':   '#00838f',
+    '行政施設':'#5d4037',
+    '観光地': '#f9a825',
+    'その他': '#546e7a',
+};
+
+// カラースウォッチを生成
+function buildSwatches() {
+    const container = document.getElementById('colorSwatches');
+    if (!container) return;
+    container.innerHTML = '';
+    Object.entries(TYPE_COLORS).forEach(([label, color]) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.title = label;
+        btn.style.cssText =
+            `width:28px;height:28px;border-radius:50%;background:${color};
+             border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);
+             cursor:pointer;transition:transform .15s;flex-shrink:0;`;
+        btn.addEventListener('click', () => selectColor(color));
+        btn.addEventListener('mouseover', () => btn.style.transform = 'scale(1.2)');
+        btn.addEventListener('mouseout',  () => btn.style.transform = 'scale(1)');
+        container.appendChild(btn);
+    });
+}
+
+// 選択した色を反映
+function selectColor(color) {
+    document.getElementById('iconColorValue').value  = color;
+    document.getElementById('iconColorPicker').value = color;
+    document.getElementById('iconColorPreview').style.background = color;
+}
+
+// 種類を変えたらデフォルト色を自動セット
+document.addEventListener('DOMContentLoaded', () => {
+    buildSwatches();
+    const sel = document.getElementById('locationType');
+    if (sel) {
+        sel.addEventListener('change', () => {
+            const defaultColor = TYPE_COLORS[sel.value] || '#546e7a';
+            selectColor(defaultColor);
+        });
+    }
+});
+
+// パネル切替
+function switchIconMode(mode) {
+    document.getElementById('iconColorPanel').style.display  = mode === 'color'  ? '' : 'none';
+    document.getElementById('iconUploadPanel').style.display = mode === 'upload' ? '' : 'none';
+    // uploadモード時はicon_colorを空にする
+    if (mode === 'upload') document.getElementById('iconColorValue').value = '';
+    if (mode === 'color')  clearIconPreview();
+}
+
+// アイコン画像プレビュー
+function previewIconImage(input) {
+    const preview = document.getElementById('iconImagePreview');
+    const img     = document.getElementById('iconImagePreviewImg');
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => { img.src = e.target.result; preview.style.display = 'block'; };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+function clearIconPreview() {
+    document.getElementById('iconImageInput').value = '';
+    document.getElementById('iconImagePreview').style.display = 'none';
+    document.getElementById('iconImagePreviewImg').src = '';
+}
+</script>
+
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+{% endblock %}

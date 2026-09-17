@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ post.title }} - てくてく秋田犬{% endblock %}
+
+{% block content %}
+
+<div style="margin-bottom:14px;display:flex;gap:10px;align-items:center;">
+    <a href="/" class="btn-outline-theme" style="font-size:0.9rem;padding:6px 18px;">← 一覧に戻る</a>
+    {% if can_delete %}
+    <a href="/edit/{{ post.id }}" class="btn-outline-theme" style="font-size:0.9rem;padding:6px 18px;">✏️ 編集</a>
+    <form action="/delete/{{ post.id }}" method="POST" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn-outline-theme"
+                style="font-size:0.9rem;padding:6px 18px;border-color:#e63946;color:#e63946;">
+            🗑️ 削除
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<!-- 投稿本文 -->
+<div class="card-neuro" style="cursor:default;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px;">
+        <h2 style="color:var(--main-c);margin:0;font-size:1.5rem;font-weight:900;">{{ post.title }}</h2>
+        {% if post.category %}
+        <span style="background:var(--main-c);color:#fff;border-radius:12px;
+                     padding:3px 12px;font-size:0.82rem;white-space:nowrap;">{{ post.category }}</span>
+        {% endif %}
+    </div>
+
+    <div class="meta" style="margin-bottom:14px;">
+        📍 {{ post.place or '場所不明' }} &nbsp;|&nbsp; 🕐 {{ post.date_posted }}
+        {% if post.author %}&nbsp;|&nbsp; 投稿者: {{ post.author.display_name or post.author.email }} <strong>Lv.{{ post.author.level }}</strong>{% endif %}
+        {% if post.deadline %}
+        &nbsp;|&nbsp; <strong>期限: {{ post.deadline.strftime('%Y-%m-%d %H:%M') }}</strong>
+        {% endif %}
+        {% if post.latitude %}
+        &nbsp;|&nbsp; <span style="color:var(--main-c);">📌 位置情報あり</span>
+        {% endif %}
+    </div>
+
+    {% if post.image_files %}
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-bottom:16px;">
+        {% for image_file in post.image_files %}
+        <a href="/static/uploads/{{ image_file }}" target="_blank">
+            <img src="/static/uploads/{{ image_file }}" class="post-media" alt="投稿画像">
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="white-space:pre-wrap;margin-bottom:16px;line-height:1.7;">{{ post.content }}</div>
+
+    {% if post.description %}
+    <div style="background:var(--bg-app);border-radius:12px;padding:14px;
+                margin-bottom:16px;white-space:pre-wrap;font-size:0.95rem;opacity:0.85;">
+        {{ post.description }}
+    </div>
+    {% endif %}
+
+    <div style="display:flex;align-items:center;gap:14px;border-top:1px solid var(--shadow-1);padding-top:14px;">
+        <form action="/like/{{ post.id }}" method="POST" class="no-card" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-theme" style="padding:8px 24px;font-size:0.95rem;">
+                ❤️ いいね {{ post.likes }}
+            </button>
+        </form>
+        <a href="https://twitter.com/share?url={{ share_url }}&text={{ post.title }}"
+           target="_blank" class="btn-outline-theme" style="padding:7px 18px;font-size:0.9rem;">
+            𝕏 シェア
+        </a>
+    </div>
+</div>
+
+<!-- リプライ一覧 -->
+{% if replies %}
+<div class="card-neuro reply-section" style="cursor:default;margin-top:6px;">
+    {% for reply in replies %}
+    <div style="display:flex;gap:12px;margin-bottom:16px;position:relative;">
+        <button type="button" class="avatar reply-avatar-button" title="この返信にメンションする"
+                aria-label="この返信にメンションする" onclick="insertReplyMention({{ reply.id }})">👤</button>
+        <div style="flex:1;">
+            <div class="reply-card">
+                {% if reply.content %}<div class="reply-content" style="white-space:pre-wrap;">{{ reply.content }}</div>{% endif %}
+                {% if reply.images %}
+                <div class="reply-image-grid">
+                    {% for image in reply.images %}
+                    <a href="/static/uploads/{{ image.filename }}" target="_blank">
+                        <img src="/static/uploads/{{ image.filename }}" class="reply-image" alt="返信画像">
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <div class="reply-meta">
+                    #{{ reply.id }} ・ {{ reply.author.email if reply.author else '匿名' }} ・ 🕐 {{ reply.date_replied.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+            </div>
+        </div>
+        {% if current_user and (reply.author_id == current_user.id or current_user.is_admin) %}
+        <details class="reply-menu">
+            <summary aria-label="返信メニュー">⋮</summary>
+            <form action="{{ url_for('posts.delete_reply', reply_id=reply.id) }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">削除</button>
+            </form>
+        </details>
+        {% endif %}
+        {% if not loop.last %}
+        <div style="position:absolute;left:20px;top:44px;bottom:-4px;
+                    width:2px;background:var(--shadow-1);"></div>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<form action="/post/{{ post.id }}" method="POST" enctype="multipart/form-data" class="reply-compose">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div id="reply_image_preview" class="reply-image-preview" aria-live="polite"></div>
+    <textarea name="reply_content" id="reply_content" rows="3"
+              placeholder="返信を入力..." style="resize:none;margin-bottom:10px;"></textarea>
+    <div class="reply-form-actions">
+        <label class="reply-file-button">
+            🖼️ 画像を添付
+            <input type="file" name="reply_images" accept=".png,.jpg,.jpeg,.gif" multiple
+                   onchange="previewReplyImages(this)">
+        </label>
+        <button type="submit" class="btn-theme reply-submit-button">返信する 💬</button>
+    </div>
+</form>
+
+<script>
+function previewReplyImages(input) {
+    const preview = document.getElementById('reply_image_preview');
+    preview.innerHTML = '';
+    [...input.files].slice(0, 5).forEach(file => {
+        const image = document.createElement('img');
+        image.src = URL.createObjectURL(file);
+        image.alt = '添付予定の画像';
+        image.onload = () => URL.revokeObjectURL(image.src);
+        preview.appendChild(image);
+    });
+}
+
+function insertReplyMention(replyId) {
+    const input = document.getElementById('reply_content');
+    const mention = `>>${replyId} `;
+    input.value += input.value && !input.value.endsWith('\n') ? `\n${mention}` : mention;
+    input.focus();
+}
+
+document.querySelectorAll('.reply-content').forEach(content => {
+    const source = content.textContent;
+    const fragment = document.createDocumentFragment();
+    let cursor = 0;
+    source.replace(/>>(\d+)/g, (match, id, offset) => {
+        fragment.append(document.createTextNode(source.slice(cursor, offset)));
+        const mention = document.createElement('span');
+        mention.className = 'reply-mention';
+        mention.textContent = `>>${id}`;
+        fragment.append(mention);
+        cursor = offset + match.length;
+        return match;
+    });
+    if (cursor) {
+        fragment.append(document.createTextNode(source.slice(cursor)));
+        content.replaceChildren(fragment);
+    }
+});
+</script>
+{% endblock %}

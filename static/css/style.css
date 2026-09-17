@@ -1,0 +1,601 @@
+/* =============================================
+   てくてく秋田犬  共通スタイル
+   テーマカラー・昼夜モードは CSS変数で制御
+   ============================================= */
+
+/* ──────────────────────────────────────────────
+   テーマトークン
+   --main-c と --on-main の 2 つだけを JS / サーバー側が指定し、
+   背景・影・文字色はすべてそこから color-mix() で派生させる。
+   → テーマカラーを変えると画面全体が同じ色みに染まる。
+   昼夜は <html data-mode="dark"> で切り替える。
+   ────────────────────────────────────────────── */
+:root {
+    /* 実際に差し替えられるのはこの 2 つ（既定＝さくらピンク） */
+    --main-c:  #ff8fa3;
+    --on-main: #ffffff;   /* --main-c の上に乗せる文字色 */
+
+    /* ── ここから下は --main-c からの派生（昼モード） ── */
+    --bg-app:       color-mix(in srgb, var(--main-c) 10%, #eef2f5);
+    --bg-card:      color-mix(in srgb, var(--main-c)  4%, #ffffff);
+    --text-color:   color-mix(in srgb, var(--main-c) 14%, #2b2b2b);
+    --muted-c:      color-mix(in srgb, var(--main-c) 38%, #808080);
+    --shadow-1:     color-mix(in srgb, var(--main-c) 22%, #d1d9e6);
+    --shadow-2:     color-mix(in srgb, var(--main-c)  5%, #ffffff);
+    --falling-color:color-mix(in srgb, var(--main-c) 55%, #ffffff);
+    --stamp-item:   "🐾";
+    --falling-item: "🌸";
+}
+
+/* 夜モード：同じ派生ルールを、暗いベース色に対して適用する */
+html[data-mode="dark"] {
+    --bg-app:       color-mix(in srgb, var(--main-c) 14%, #171d29);
+    --bg-card:      color-mix(in srgb, var(--main-c) 12%, #2d3748);
+    --text-color:   color-mix(in srgb, var(--main-c) 10%, #f7fafc);
+    --muted-c:      color-mix(in srgb, var(--main-c) 40%, #9aa5b4);
+    --shadow-1:     color-mix(in srgb, var(--main-c) 10%, #101420);
+    --shadow-2:     color-mix(in srgb, var(--main-c) 16%, #303a4c);
+    --falling-color:color-mix(in srgb, var(--main-c) 40%, #ffffff);
+    --stamp-item:   "★";
+    --falling-item: "✨";
+}
+
+/* 色が切り替わったときに、じわっと馴染ませる */
+html, body, .card-neuro, .settings-panel, .tab-btn, .nav-item,
+.bottom-nav, .navbar-custom, .radio-group label, .reply-card, .selected-box {
+    transition: background-color 0.4s ease, color 0.4s ease, box-shadow 0.4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+    html, body, .card-neuro, .settings-panel, .tab-btn, .nav-item,
+    .bottom-nav, .navbar-custom, .radio-group label, .reply-card, .selected-box {
+        transition: none;
+    }
+}
+
+/* ──────────────────────────────────────────────
+   ベース
+   ────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+    margin: 0; padding: 0;
+    font-size: 18px;
+    line-height: 1.6;
+    font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN',
+                 'Hiragino Sans', Meiryo, sans-serif;
+    background-color: var(--bg-app);
+    color: var(--text-color);
+    /* ハートカーソル */
+    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='24' font-size='24'>🫶</text></svg>"), auto;
+}
+
+/* リンク・ボタン類もハートカーソル */
+a, button, input[type="submit"], input[type="button"],
+label[for], select { cursor: inherit; }
+
+/* ──────────────────────────────────────────────
+   背景アニメーション（桜 / 星が斜めに降る）
+   ────────────────────────────────────────────── */
+.background-container {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.falling-item {
+    position: absolute;
+    font-size: 26px;
+    opacity: 0;
+    animation: fallDiagonal linear infinite;
+    color: var(--falling-color);
+}
+
+@keyframes fallDiagonal {
+    0%   { transform: translate(150px, -150px) rotate(0deg);   opacity: 0; }
+    10%  { opacity: 0.4; }
+    90%  { opacity: 0.4; }
+    100% { transform: translate(-120vw, 120vh) rotate(360deg); opacity: 0; }
+}
+
+/* 背景スタンプ（🐾 or ★ を四隅にちりばめる） */
+.background-container::after {
+    content: var(--stamp-item, "🐾");
+    position: absolute;
+    font-size: 65px;
+    color: var(--main-c);
+    opacity: 0.22;
+    top: 45vh; left: 4vw;
+    transform: rotate(-20deg);
+    text-shadow:
+        88vw -30vh 0 var(--main-c),
+        84vw  35vh 0 var(--main-c),
+         3vw  38vh 0 var(--main-c);
+}
+
+/* ──────────────────────────────────────────────
+   ナビバー
+   ────────────────────────────────────────────── */
+.navbar-custom {
+    background: linear-gradient(135deg,
+                color-mix(in srgb, var(--main-c) 82%, #000),
+                var(--main-c));
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+    padding: 12px 0;
+    position: relative;
+}
+.navbar-custom .navbar-brand {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--on-main) !important;
+    text-shadow: 2px 2px 0 rgba(0,0,0,0.15);
+    letter-spacing: 2px;
+}
+.account-actions {
+    position:absolute; right:18px; top:50%; transform:translateY(-50%); z-index:20;
+    display:flex; align-items:center; gap:10px; font-size:.9rem;
+}
+.account-actions form { margin:0; }
+.account-name { color:var(--on-main); }
+.account-link {
+    display:inline-flex; align-items:center; justify-content:center; min-height:32px;
+    padding:4px 8px; box-sizing:border-box; color:var(--on-main); background:transparent;
+    border:0; font:inherit; font-weight:700; cursor:pointer; text-decoration:underline;
+}
+.account-link:hover { opacity:.8; }
+
+/* ──────────────────────────────────────────────
+   設定まわりの共有パーツ
+   （設定ページ固有のスタイルは css/settings.css）
+   ────────────────────────────────────────────── */
+.settings-label {
+    font-weight: bold; font-size: 1rem;
+    color: var(--text-color); margin-bottom: 10px; display: block;
+}
+
+/* 昼夜・言語ラジオボタン */
+.radio-group { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.radio-group input[type="radio"] { display: none; }
+
+.radio-group label {
+    display: inline-block;
+    background: var(--bg-app);
+    box-shadow: 4px 4px 8px var(--shadow-1), -4px -4px 8px var(--shadow-2);
+    border-radius: 20px;
+    padding: 8px 22px;
+    font-size: 1rem; font-weight: bold;
+    color: var(--muted-c);
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.radio-group input[type="radio"]:checked + label {
+    background: var(--main-c);
+    color: var(--on-main);
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.15), 2px 2px 8px rgba(0,0,0,0.1);
+}
+.radio-group label[for="tab_rd"] { order: 2; }
+.radio-group label[for="tab_loc"] { order: 3; }
+.radio-group #tab_rd:checked ~ label[for="tab_rd"] {
+    background: var(--main-c);
+    color: var(--on-main);
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.15), 2px 2px 8px rgba(0,0,0,0.1);
+}
+.radio-group label:hover { transform: translateY(-2px); }
+
+/* ──────────────────────────────────────────────
+   タブ（ぷっくりニューモーフィズム）
+   ────────────────────────────────────────────── */
+.tab-nav {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin: 0 0 24px;
+    flex-wrap: wrap;
+    position: relative; z-index: 10;
+}
+
+.tab-btn {
+    background: var(--bg-app);
+    box-shadow: 4px 4px 8px var(--shadow-1), -4px -4px 8px var(--shadow-2);
+    border-radius: 30px;
+    padding: 12px 28px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--muted-c);
+    border: none;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+.tab-btn:hover { transform: translateY(-2px); color: var(--main-c); }
+.tab-btn.active {
+    background: var(--main-c);
+    color: var(--on-main) !important;
+    box-shadow: inset 3px 3px 6px rgba(0,0,0,0.15), 3px 3px 10px rgba(0,0,0,0.1);
+}
+
+/* ──────────────────────────────────────────────
+   カード
+   ────────────────────────────────────────────── */
+.card-neuro {
+    background: var(--bg-card);
+    border-radius: 20px;
+    box-shadow: 6px 6px 15px var(--shadow-1), -4px -4px 10px var(--shadow-2);
+    padding: 20px 24px;
+    margin-bottom: 18px;
+    border-left: 5px solid var(--main-c);
+    position: relative; z-index: 5;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.card-neuro:hover {
+    transform: translateY(-3px);
+    box-shadow: 8px 8px 20px var(--shadow-1), -4px -4px 12px var(--shadow-2);
+}
+.card-neuro .meta { color: var(--muted-c); font-size: 0.85rem; margin-top: 6px; }
+.card-neuro .likes-badge {
+    display: inline-block;
+    background: color-mix(in srgb, var(--main-c) 15%, transparent);
+    color: var(--main-c); border-radius: 20px;
+    padding: 2px 12px; font-size: 0.85rem; font-weight: bold;
+}
+
+/* ──────────────────────────────────────────────
+   入力欄（フォーカスでテーマカラーが光る）
+   ────────────────────────────────────────────── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="datetime-local"],
+input[type="file"],
+textarea, select {
+    background: var(--bg-card) !important;
+    border: 2px solid var(--shadow-1) !important;
+    border-radius: 15px !important;
+    color: var(--text-color) !important;
+    box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05) !important;
+    transition: all 0.3s ease;
+    padding: 10px 14px;
+    font-size: 1rem;
+    width: 100%;
+}
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--main-c) !important;
+    box-shadow: 0 0 12px color-mix(in srgb, var(--main-c) 60%, transparent) !important;
+}
+
+/* ──────────────────────────────────────────────
+   ボタン（グラデーション）
+   ────────────────────────────────────────────── */
+.btn-theme {
+    font-size: 1rem;
+    border-radius: 20px;
+    background: linear-gradient(135deg, color-mix(in srgb,var(--main-c) 85%,#000), var(--main-c));
+    box-shadow: 3px 3px 10px rgba(0,0,0,0.15);
+    border: none;
+    color: var(--on-main);
+    font-weight: bold;
+    padding: 10px 35px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: inline-block;
+    text-decoration: none;
+}
+.btn-theme:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 18px rgba(0,0,0,0.2);
+    background: var(--main-c);
+    color: var(--on-main);
+}
+
+.btn-outline-theme {
+    border: 2px solid var(--main-c);
+    color: var(--main-c);
+    background: transparent;
+    border-radius: 20px;
+    padding: 8px 24px;
+    font-weight: bold;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+}
+.btn-outline-theme:hover {
+    background: var(--main-c);
+    color: var(--on-main);
+}
+
+/* ──────────────────────────────────────────────
+   投稿詳細・リプライ
+   ────────────────────────────────────────────── */
+.reply-card {
+    background: var(--bg-app);
+    border-radius: 14px;
+    border-left: 3px solid color-mix(in srgb, var(--main-c) 50%, transparent);
+    padding: 12px 16px;
+    margin: 10px 0;
+    font-size: 0.95rem;
+}
+.reply-card .reply-meta { color: var(--muted-c); font-size: 0.78rem; margin-top: 4px; }
+.reply-mention {
+    display:inline-block; margin-left:4px; color:var(--main-c); font-weight:900;
+    background:color-mix(in srgb, var(--main-c) 12%, transparent); border-radius:6px; padding:1px 5px;
+}
+.post-media {
+    width: 100%; height: 240px; object-fit: contain; border-radius: 14px;
+    background: color-mix(in srgb, var(--bg-app) 85%, #000 15%);
+}
+.reply-image-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px; margin-top: 10px;
+}
+.reply-image {
+    width: 100%; height: 180px; object-fit: contain; border-radius: 10px;
+    background: color-mix(in srgb, var(--bg-app) 85%, #000 15%);
+}
+.reply-file-button {
+    display: inline-block; margin: 2px 0 12px; padding: 8px 16px;
+    border: 2px solid var(--main-c); border-radius: 20px; color: var(--main-c);
+    font-weight: bold; cursor: pointer;
+}
+.reply-file-button input { display: none; }
+.reply-form-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.reply-form-actions .reply-file-button { margin:0; }
+.reply-submit-button { width:auto; padding:9px 24px; }
+.reply-compose {
+    position: fixed; z-index: 900;
+    /* 本文列（幅860px、サイドバー80px）と同じ左端に固定する */
+    left: calc(50% - 374px); bottom: 16px;
+    width: min(828px, calc(100vw - 112px)); box-sizing: border-box;
+    max-height: 48vh; overflow-y: auto;
+    padding: 12px; border: 1px solid var(--shadow-1); border-radius: 16px;
+    background: var(--bg-card);
+    box-shadow: 0 8px 24px var(--shadow-1);
+}
+/* 固定返信欄の親カードは、ホバー時に動かさない */
+.reply-section:hover {
+    transform: none;
+    box-shadow: 6px 6px 15px var(--shadow-1), -4px -4px 10px var(--shadow-2);
+}
+/* 固定返信欄の下に投稿本文・写真を逃がせるスクロール余白を確保する */
+body:has(.reply-compose) .page-wrapper { padding-bottom: 52vh; }
+.reply-image-preview { display:flex; flex-wrap:wrap; justify-content:center; gap:12px; margin:0 0 14px; }
+.reply-image-preview img {
+    width:clamp(200px, 38vw, 420px); height:clamp(180px, 30vw, 300px);
+    max-width:100%; object-fit:contain; border-radius:12px;
+    background:color-mix(in srgb, var(--bg-app) 85%, #000 15%);
+}
+.reply-menu { position:relative; flex-shrink:0; }
+.reply-menu summary {
+    list-style:none; cursor:pointer; width:30px; height:30px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:900;
+    color:var(--muted-c);
+}
+.reply-menu summary::-webkit-details-marker { display:none; }
+.reply-menu[open] form {
+    position:absolute; right:0; top:34px; z-index:5; background:var(--bg-card);
+    border:1px solid var(--shadow-1); border-radius:8px; padding:4px; min-width:68px;
+    box-shadow:0 4px 12px var(--shadow-1); white-space:nowrap;
+}
+.reply-menu button {
+    border:0; background:transparent; color:#d92d3a; padding:7px 12px; cursor:pointer;
+    min-width:60px; white-space:nowrap; writing-mode:horizontal-tb;
+}
+
+@media (max-width: 1000px) {
+    .reply-compose { left:96px; width:calc(100vw - 112px); }
+}
+
+@media (max-width: 700px) {
+    .reply-compose { left:92px; width:calc(100vw - 104px); bottom:10px; padding:10px; }
+    .reply-image-preview img { width:min(100%, 360px); height:clamp(180px, 48vw, 260px); }
+    .reply-submit-button { padding:9px 14px; }
+    body:has(.reply-compose) .page-wrapper { padding-bottom: 56vh; }
+}
+
+/* アバター */
+.avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--main-c);
+    color: var(--on-main);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+}
+.reply-avatar-button {
+    border:0; cursor:pointer; padding:0;
+}
+.reply-avatar-button:hover { transform:scale(1.08); }
+
+/* ──────────────────────────────────────────────
+   人気投稿バッジ
+   ────────────────────────────────────────────── */
+.popular-badge {
+    display: inline-block;
+    background: color-mix(in srgb, var(--main-c) 15%, transparent);
+    border: 1px solid color-mix(in srgb, var(--main-c) 40%, transparent);
+    color: var(--text-color);
+    border-radius: 12px;
+    padding: 6px 14px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+.popular-badge:hover { background: var(--main-c); color: var(--on-main); }
+.popular-badge .heart { color: var(--main-c); margin-right: 4px; }
+.popular-badge:hover .heart { color: var(--on-main); }
+
+/* ──────────────────────────────────────────────
+   地図ページ
+   ────────────────────────────────────────────── */
+.map-layout {
+    display: flex;
+    height: calc(100vh - 130px);
+}
+#map { width: 60%; height: 100%; }
+.map-sidebar {
+    width: 40%; padding: 16px;
+    background: var(--bg-app);
+    overflow-y: auto;
+    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
+}
+.selected-box {
+    background: var(--bg-card);
+    border-left: 5px solid var(--main-c);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    box-shadow: 3px 3px 8px var(--shadow-1), -2px -2px 6px var(--shadow-2);
+}
+
+/* マーカーラベル */
+.map-label {
+    background: var(--bg-card);
+    border: 1px solid var(--main-c);
+    border-radius: 6px;
+    padding: 3px 7px;
+    font-weight: bold;
+    font-size: 0.8rem;
+    color: var(--text-color);
+}
+.custom-marker { width:36px; height:36px; background-size:contain; background-repeat:no-repeat; background-position:center; border:none; }
+.icon-station  { background-image: url("/static/images/icons/station.png"); }
+.icon-school   { background-image: url("/static/images/icons/school.png"); }
+.icon-zakka    { background-image: url("/static/images/icons/zakka.png"); }
+.icon-other, .icon-restaurant, .icon-park,
+.icon-hospital, .icon-cityhall, .icon-tourist {
+    background-color: var(--main-c); border-radius: 50%; opacity: 0.85;
+}
+
+/* ──────────────────────────────────────────────
+   サイドナビ（元ボトムナビ）
+   ────────────────────────────────────────────── */
+body { 
+    padding-bottom: 0;     /* 下の余白を消す */
+    padding-left: 80px;    /* 代わりに左側にサイドバー分の余白を作る */
+}
+
+.bottom-nav {
+    position: fixed; 
+    top: 0;               /* 上端にくっつける */
+    left: 0;              /* 左端にくっつける */
+    bottom: 0;            /* 下端まで伸ばす（画面の縦幅いっぱい） */
+    width: 80px;          /* サイドバーの横幅 */
+    background: color-mix(in srgb, var(--bg-card) 95%, transparent);
+    backdrop-filter: blur(8px);
+    border-right: 1px solid var(--shadow-1); /* 上の線の代わりに右に線を引く */
+    box-shadow: 4px 0 15px rgba(0,0,0,0.05); /* 影を右向きに変更 */
+    z-index: 1000;
+    padding: 20px 0;      /* 上下に少し余白 */
+    display: flex;
+    flex-direction: column; /* 中身を縦方向に並べる設定 */
+}
+
+.bottom-nav-inner {
+    display: flex;
+    flex-direction: column; /* アイコンを縦に並べる */
+    justify-content: flex-start;
+    align-items: center;    /* アイコンを中央揃えに */
+    gap: 26px;              /* アイコン間の縦の隙間 */
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow-y: auto;       /* 項目が増えても収まるように */
+}
+.nav-item {
+    display: flex; flex-direction: column; align-items: center;
+    text-decoration: none;
+    color: var(--muted-c);
+    font-size: 0.7rem; font-weight: bold;
+    gap: 2px;
+    flex: 0 0 auto;
+    transition: all 0.2s;
+    padding: 4px 0;
+}
+
+/* 「設定」はサイドバーのいちばん下に寄せる */
+.nav-item-settings {
+    margin-top: auto;
+    padding-top: 16px;
+    border-top: 1px solid var(--shadow-1);
+    width: 100%;
+}
+.nav-item-settings:hover i { transform: rotate(45deg) scale(1.15); }
+.nav-item i { font-size: 1.5rem; transition: transform 0.2s; }
+.nav-item:hover { color: var(--main-c); }
+.nav-item:hover i { transform: scale(1.15); }
+.nav-item.active-nav { color: var(--main-c); }
+
+/* ──────────────────────────────────────────────
+   セクションタイトル
+   ────────────────────────────────────────────── */
+.section-title {
+    font-size: 1.3rem; font-weight: 900;
+    color: var(--main-c);
+    margin: 0 0 16px;
+    text-shadow: 2px 2px 0 var(--bg-card);
+}
+h1.app-title {
+    font-size: 2.6rem;
+    font-weight: 900;
+    color: var(--main-c);
+    text-align: center;
+    white-space: nowrap;
+    margin: 0 0 20px;
+    text-shadow: 3px 3px 0 var(--bg-card), 5px 5px 0 rgba(0,0,0,0.08);
+}
+
+/* ──────────────────────────────────────────────
+   コンテンツラッパー
+   ────────────────────────────────────────────── */
+.page-wrapper {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 16px;
+    position: relative; z-index: 5;
+}
+
+/* ──────────────────────────────────────────────
+   フォームラベル
+   ────────────────────────────────────────────── */
+.form-lbl {
+    font-size: 0.88rem; font-weight: bold;
+    color: var(--text-color); opacity: 0.7;
+    display: block; margin-bottom: 5px;
+}
+
+/* 投稿画像の選択ボタン */
+.cute-upload-button {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 9px 14px; border: 2px solid #f28aa7; border-radius: 999px;
+    background: linear-gradient(135deg, #fff7fa, #ffd9e5);
+    color: #b4234b; font-size: .88rem; font-weight: 800; cursor: pointer;
+    box-shadow: 2px 3px 6px rgba(178, 35, 75, .16);
+    transition: transform .18s ease, box-shadow .18s ease;
+}
+.cute-upload-button:hover {
+    transform: translateY(-1px) rotate(-1deg);
+    box-shadow: 3px 5px 9px rgba(178, 35, 75, .24);
+}
+.cute-upload-button input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.post-image-preview-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; }
+.post-image-preview-button { padding: 0; border: 0; background: none; cursor: zoom-in; }
+.post-image-preview-list img { display:block; width: 100%; height: 105px; object-fit: cover; border-radius: 12px; border: 1px solid var(--shadow-1); }
+.image-preview-modal {
+    position: fixed; inset: 0; z-index: 1600; display: flex; align-items: center; justify-content: center;
+    padding: 24px; background: rgba(25, 18, 22, .78); cursor: zoom-out;
+}
+.image-preview-modal[hidden] { display: none; }
+.image-preview-modal img { max-width: min(94vw, 1000px); max-height: 88vh; object-fit: contain; border-radius: 14px; box-shadow: 0 10px 34px rgba(0, 0, 0, .48); cursor: default; }
+.image-preview-modal-close {
+    position: absolute; top: 16px; right: 20px; width: 42px; height: 42px; border: 2px solid #fff;
+    border-radius: 50%; background: #1b1b1b; color: #fff; font-size: 1.65rem; line-height: 1; cursor: pointer;
+}
+.required-badge {
+    background: #e63946; color: #fff;
+    font-size: 0.7rem; border-radius: 6px;
+    padding: 1px 6px; margin-left: 5px;
+}
