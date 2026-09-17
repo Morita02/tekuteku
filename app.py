@@ -17,6 +17,7 @@ import threading
 from flask import Flask, send_from_directory
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.middleware.proxy_fix import ProxyFix
+from werkzeug.security import generate_password_hash
 from sqlalchemy import text
 from extensions import db          # ← db はここから来る
 
@@ -79,7 +80,7 @@ db.init_app(app)
 # ──────────────────────────────────────────────
 with app.app_context():
     import models  # noqa: F401  テーブル定義を読み込む
-    from models import Location
+    from models import Location, User
 
     from routes.main  import main_bp
     from routes.posts import posts_bp
@@ -127,6 +128,22 @@ with app.app_context():
             'UPDATE user SET level = 1 + '
             '(SELECT COUNT(*) FROM info_post WHERE info_post.author_id = user.id)'
         ))
+
+    # Render無料版では再起動時にSQLiteの内容が失われるため、管理者アカウントを
+    # 起動ごとに確認する。初期パスワードは公開ソースに書かず、環境変数からだけ読む。
+    admin_email = os.environ.get('ADMIN_EMAIL', 'admin@akita').strip().lower()
+    admin_password = os.environ.get('ADMIN_PASSWORD')
+    if admin_password:
+        admin_user = User.query.filter_by(email=admin_email).first()
+        if not admin_user:
+            db.session.add(User(
+                email=admin_email,
+                password_hash=generate_password_hash(admin_password),
+                display_name='Admin',
+                is_admin=True,
+            ))
+        else:
+            admin_user.is_admin = True
 
     # 初期表示用の代表的な場所。名前で確認して重複登録を防ぐ。
     initial_locations = (

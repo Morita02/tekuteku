@@ -11,6 +11,10 @@ services:
         value: 3.13.7
       - key: SECRET_KEY
         generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@akita
+      - key: ADMIN_PASSWORD
+        generateValue: true
       - key: TEKUTEKU_DATA_DIR
         value: /tmp/tekuteku-data
       - key: DEMO_MODE
