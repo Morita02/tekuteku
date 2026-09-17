@@ -36,7 +36,7 @@
 
 <!-- 検索バー -->
 <form action="/" method="GET" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
-    <input type="text" name="q" placeholder="🔍 キーワードでイベント検索（例：お祭り、ライブ、花火）"
+    <input type="text" name="q" placeholder="🔍 すべての投稿をキーワード検索（例：お祭り、国道、駅前）"
            value="{{ search_query }}" style="flex:2;min-width:200px;">
     <select name="category" style="flex:1;min-width:140px;">
         <option value="">すべてのカテゴリー</option>
@@ -47,11 +47,11 @@
     <button type="submit" class="btn-theme">検索</button>
 </form>
 {% if search_query or category %}
-<a href="/" style="font-size:0.85rem;color:var(--main-c);">検索をクリア</a>
+<a href="/?tab={{ selected_tab }}" style="font-size:0.85rem;color:var(--main-c);">検索をクリア</a>
 {% endif %}
 
 <!-- 投稿一覧 -->
-<p class="section-title">{{ '📍 場所への投稿' if selected_tab == 'location' else ('🚧 道路状況' if selected_tab == 'road' else '🎈 イベント情報') }}</p>
+<p class="section-title">{{ '🔍 すべての投稿の検索結果' if is_global_search else ('📍 場所への投稿' if selected_tab == 'location' else ('🚧 道路状況' if selected_tab == 'road' else '🎈 イベント情報')) }}</p>
 
 {% for post in posts %}
 <div class="card-neuro" style="cursor:pointer;"

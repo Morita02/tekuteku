@@ -57,11 +57,15 @@ def index():
     if selected_tab not in {'location', 'event', 'road'}:
         selected_tab = 'event'
 
+    # キーワード検索は、画面で選ばれているタブに関係なく全種類の投稿を対象にする。
+    # タブを切り替えただけの場合は、従来どおりその種類の投稿だけを表示する。
+    is_global_search = bool(q)
     query = _visible_on_timeline(InfoPost.query)
-    if selected_tab == 'event':
-        query = query.filter(db.or_(InfoPost.tab == 'event', InfoPost.tab.is_(None)))
-    else:
-        query = query.filter(InfoPost.tab == selected_tab)
+    if not is_global_search:
+        if selected_tab == 'event':
+            query = query.filter(db.or_(InfoPost.tab == 'event', InfoPost.tab.is_(None)))
+        else:
+            query = query.filter(InfoPost.tab == selected_tab)
     if q:
         query = query.filter(
             db.or_(
@@ -82,7 +86,7 @@ def index():
         popular_query = popular_query.filter(InfoPost.tab == selected_tab)
     popular_posts = popular_query.order_by(InfoPost.likes.desc()).limit(3).all()
     history_posts, my_posts = _get_history_data()
-    categories = _get_categories(tab=selected_tab)
+    categories = _get_categories() if is_global_search else _get_categories(tab=selected_tab)
 
     return render_template(
         'index.html',
@@ -94,6 +98,7 @@ def index():
         category=category,
         categories=categories,
         selected_tab=selected_tab,
+        is_global_search=is_global_search,
     )
 
 
