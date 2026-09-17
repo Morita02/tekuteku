@@ -7,6 +7,25 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}てくてく秋田犬{% endblock %}</title>
+    <script>
+    // CSSを読み込む前にCookieのテーマを適用し、既定の桜色が一瞬見えるのを防ぐ。
+    (() => {
+        const readCookie = (name) => document.cookie.split('; ').reduce((value, item) => {
+            const [key, raw] = item.split('=');
+            return key === name ? decodeURIComponent(raw || '') : value;
+        }, '');
+        const palette = {
+            '#ff8fa3': '#ffffff', '#e63946': '#ffffff', '#11caa0': '#ffffff',
+            '#ffb703': '#443300', '#219ebc': '#ffffff',
+        };
+        const savedColor = readCookie('theme_color');
+        const color = Object.hasOwn(palette, savedColor) ? savedColor : '#ff8fa3';
+        const root = document.documentElement;
+        root.style.setProperty('--main-c', color);
+        root.style.setProperty('--on-main', palette[color]);
+        root.dataset.mode = readCookie('dark_mode') === '1' ? 'dark' : 'light';
+    })();
+    </script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css">
